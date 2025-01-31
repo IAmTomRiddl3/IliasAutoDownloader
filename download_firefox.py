@@ -1,11 +1,12 @@
 import json
-import time
 import os
-import extras
+import time
+
 from selenium import webdriver
-from selenium.webdriver import FirefoxProfile
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+
+import extras
 
 # === CONFIGURATION ===
 # Load the configuration file, fallback to public_config.json if not found
@@ -20,12 +21,7 @@ USERNAME = config["USERNAME"]
 PASSWORD = config["PASSWORD"]
 COURSES = config["COURSES"]  # Load multiple courses from the JSON file
 
-# === SELENIUM SETUP ===
-options = webdriver.FirefoxOptions()
-options.set_preference("browser.download.folderList", 2)
-options.set_preference("pdfjs.disabled", True)
-options.set_preference("browser.download.manager.showWhenStarting", False)
-options.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf, application/octet-stream")
+
 
 course_id = COURSES[0]["COURSE_ID"]
 course_property = COURSES[0]["COURSE_PROPERTY"]
@@ -38,11 +34,15 @@ for course in COURSES:
     course_property = course["COURSE_PROPERTY"]
     local_folder = course["LOCAL_FOLDER"]
 
-    course_url = f"{ILIAS_URL}/ilias.php?baseClass=ilrepositorygui&ref_id={course_id}"
-    print(f"Checking Course: {course_property} ({course_url})")
-
-
+    # === SELENIUM SETUP ===
+    options = webdriver.FirefoxOptions()
+    options.set_preference("browser.download.folderList", 2)
+    options.set_preference("pdfjs.disabled", True)
+    options.set_preference("browser.download.manager.showWhenStarting", False)
+    options.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf, application/octet-stream")
     options.set_preference("browser.download.dir", local_folder)
+
+    # Start WebDriver once (Keep session alive)
     driver = webdriver.Firefox(options=options)
 
     # === LOGIN ===
@@ -50,6 +50,9 @@ for course in COURSES:
     driver.find_element(By.NAME, "login_form/input_3/input_4").send_keys(USERNAME)
     driver.find_element(By.NAME, "login_form/input_3/input_5").send_keys(PASSWORD + Keys.RETURN)
     time.sleep(2)  # Warte auf Login
+
+    course_url = f"{ILIAS_URL}/ilias.php?baseClass=ilrepositorygui&ref_id={course_id}"
+    print(f"Checking Course: {course_property} ({course_url})")
 
     # Ensure the local folder exists
     os.makedirs(local_folder, exist_ok=True)
@@ -79,9 +82,9 @@ for course in COURSES:
             file_url = web_files[file]
             print(f"- Downloading {file} from {file_url}")
             driver.get(file_url)
-            time.sleep(2)
+            time.sleep(1)
     else:
         print(f"All files are already downloaded for {course_property}.")
+    driver.quit()
 
 print("Success!")
-driver.quit()
