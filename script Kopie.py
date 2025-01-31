@@ -47,9 +47,9 @@ def download(kurs_url):
 
 
 def course_chooser() -> str:
-    THEO_FOLDER = "/home/acceus/Documents/Studium/Uebungblaetter/Theo_1/uebungsblaetter"
-    PSE_FOLDER = "/home/acceus/Documents/Studium/Uebungblaetter/Programmierung_und_Softwareentwicklung/Vorlesungsfolien"
-    MATHE_FOLDER = "/home/acceus/Documents/Studium/Uebungblaetter/Mathe_1/Uebungsblaetter"
+    THEO_FOLDER = "XXXX"
+    PSE_FOLDER = "XXXX"
+    MATHE_FOLDER = "XXXX"
 
     course = input("Which course do you want to download? ").strip().lower()
 
@@ -77,8 +77,8 @@ KURS_URLS = [
     "3861265",
     "3893223",
 ]
-USERNAME = "st192391"
-PASSWORD = "5$%tWG6PHJUpm$EQidZu!3nyDe8o"
+USERNAME = "XXXX"
+PASSWORD = "XXXXX"
 # Local Folder that will be matched with the files online and the missing files will be downloaded to
 
 
