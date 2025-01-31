@@ -1,0 +1,16 @@
+{
+    "_comment": "Set Login credentials. The login URL is the Part of the URL that leads to the login page, without the ILIAS-URL ",
+    "ILIAS_URL": "REPLACE",
+    "LOGIN_URL": "REPLACE",
+    "USERNAME": "REPLACE",
+    "PASSWORD": "REPLACE",
+
+    "_comment": "Define multiple courses with their IDs, types, and local storage paths. Allowed Types: LECTURE, SHEET, CODING-SHEET",
+    "COURSES": [
+        {
+            "COURSE_ID": "REPLACE",
+            "COURSE_PROPERTY": "DEFINE_TYPE",
+            "LOCAL_FOLDER": "REPLACE"
+        }
+    ]
+}
