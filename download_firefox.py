@@ -1,14 +1,14 @@
 import json
-import os
 import time
+import os
 import extras
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver import FirefoxProfile
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-
 # === CONFIGURATION ===
+# Load the configuration file, fallback to public_config.json if not found
 CONFIG_FILE = extras.config_file()
 
 with open(CONFIG_FILE, "r") as f:
@@ -21,19 +21,16 @@ PASSWORD = config["PASSWORD"]
 COURSES = config["COURSES"]  # Load multiple courses from the JSON file
 
 # === SELENIUM SETUP ===
-chrome_options = Options()
-chrome_options.add_experimental_option("prefs", {
-    "download.directory_upgrade": True,
-    "safebrowsing.enabled": True,
-    "plugins.always_open_pdf_externally": True  # Enables direct download of PDFs
-})
-driver = webdriver.Chrome(options=chrome_options)
+options = webdriver.FirefoxOptions()
+options.set_preference("browser.download.folderList", 2)
+options.set_preference("pdfjs.disabled", True)
+options.set_preference("browser.download.manager.showWhenStarting", False)
+options.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf, application/octet-stream")
 
-# === LOGIN ===
-driver.get(ILIAS_URL + LOGIN_URL)
-driver.find_element(By.NAME, "login_form/input_3/input_4").send_keys(USERNAME)
-driver.find_element(By.NAME, "login_form/input_3/input_5").send_keys(PASSWORD + Keys.RETURN)
-time.sleep(2)
+course_id = COURSES[0]["COURSE_ID"]
+course_property = COURSES[0]["COURSE_PROPERTY"]
+local_folder = COURSES[0]["LOCAL_FOLDER"]
+course_url = f"{ILIAS_URL}/ilias.php?baseClass=ilrepositorygui&ref_id={course_id}"
 
 # === PROCESS ALL COURSES ===
 for course in COURSES:
@@ -43,6 +40,16 @@ for course in COURSES:
 
     course_url = f"{ILIAS_URL}/ilias.php?baseClass=ilrepositorygui&ref_id={course_id}"
     print(f"Checking Course: {course_property} ({course_url})")
+
+
+    options.set_preference("browser.download.dir", local_folder)
+    driver = webdriver.Firefox(options=options)
+
+    # === LOGIN ===
+    driver.get(ILIAS_URL + "/login.php?client_id=Uni_Stuttgart&cmd=force_login&lang=de")
+    driver.find_element(By.NAME, "login_form/input_3/input_4").send_keys(USERNAME)
+    driver.find_element(By.NAME, "login_form/input_3/input_5").send_keys(PASSWORD + Keys.RETURN)
+    time.sleep(2)  # Warte auf Login
 
     # Ensure the local folder exists
     os.makedirs(local_folder, exist_ok=True)
