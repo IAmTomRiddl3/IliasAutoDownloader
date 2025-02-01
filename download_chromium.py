@@ -1,5 +1,6 @@
 import time
 import os
+import shutil
 import json
 import re
 from selenium import webdriver
@@ -23,6 +24,7 @@ ILIAS_URL = config["ILIAS_URL"]
 USERNAME = config["USERNAME"]
 PASSWORD = config["PASSWORD"]
 COURSES = config["COURSES"]  # Load multiple courses from the JSON file
+keywords = {"Hinweis", "Lösung"}  # Keywords for L-suffix
 
 
 def setup_webdriver(download_folder):
@@ -78,33 +80,63 @@ for course in COURSES:
         if file_name and file_link:
             web_files[file_name] = file_link
 
-    # Handle LECTURE-type courses (Standard download behavior)
-    if course_property == "LECTURE":
+    # Handle SHEET-type courses
+    if course_property == "SHEET":
+        h_set = set()
+        l_set = set()
+
+        print(f"Processing missing files for {course_property}:")
+
+        for file in web_files.keys():
+            match = re.findall(r'\d+', file)
+            if match:
+                formatted_num = f"{int(match[0]):02d}"  # Ensure two-digit format
+                if any(word in file for word in keywords):
+                    l_set.add(formatted_num)
+                else:
+                    h_set.add(formatted_num)
+
+        print("H-Prefix Set:", sorted(h_set))
+        print("L-Prefix Set:", sorted(l_set))
+
+        # Ensure all required H-prefixed folders exist
+        existing_folders = {folder for folder in os.listdir(local_folder) if os.path.isdir(os.path.join(local_folder, folder))}
+        missing_folders = sorted(set(f"H{num}" for num in h_set) - existing_folders)
+
+        if missing_folders:
+            print("Missing folders that need to be created:")
+            for folder in missing_folders:
+                print(f"- {folder}")
+                os.makedirs(os.path.join(local_folder, folder), exist_ok=True)  # Create missing folder
+
+        # Check which files are missing in the corresponding HXX folders
         downloaded_files = {f.replace(".pdf", "") for f in os.listdir(local_folder) if f.endswith(".pdf")}
         missing_files = sorted(set(web_files.keys()) - downloaded_files)
 
         if missing_files:
-            print(f"Downloading missing files for {course_property}:")
+            print("Downloading missing files:")
             for file in missing_files:
                 file_url = web_files[file]
                 print(f"- Downloading {file} from {file_url}")
                 driver.get(file_url)
-                time.sleep(2)
-        else:
-            print(f"All files are already downloaded for {course_property}.")
+                time.sleep(2)  # Allow some time for the download to complete
 
-    # Handle SHEET-type courses (Check if multiple files contain the same number)
-    elif course_property == "SHEET":
-        downloaded_files = {f.replace(".pdf", "") for f in os.listdir(local_folder) if f.endswith(".pdf")}
-        missing_files = sorted(set(web_files.keys()) - downloaded_files)
-        if missing_files:
-            print(f"Downloading missing files for {course_property}:")
-            for file in missing_files:
-                print(f"- {file}")
+        # Move files to their respective HXX folders if they don't already exist
+        for num in h_set:
+            h_folder = os.path.join(local_folder, f"H{num}")
 
+            if os.path.exists(h_folder):
+                for prefix in ["H", "L"]:
+                    filename = f"{prefix}{num}.pdf"
+                    source_path = os.path.join(local_folder, filename)
+                    destination_path = os.path.join(h_folder, filename)
 
-        else:
-            print(f"All files are already downloaded for {course_property}.")
+                    # Überprüfung, ob die Datei bereits im HXX-Ordner existiert
+                    if os.path.exists(source_path) and not os.path.exists(destination_path):
+                        print(f"Moving {filename} to {h_folder}")
+                        shutil.move(source_path, destination_path)
+                    elif os.path.exists(destination_path):
+                        print(f"{filename} already exists in {h_folder}, leaving in {local_folder}")
 
     driver.quit()  # Close WebDriver after processing the course
 
