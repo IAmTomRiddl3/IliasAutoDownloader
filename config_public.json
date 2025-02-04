@@ -4,10 +4,13 @@
     "LOGIN_URL": "REPLACE",
     "USERNAME": "REPLACE",
     "PASSWORD": "REPLACE",
+    "NAME": "REPLACE",
+    "MATNR": "REPLACE",
 
     "_comment": "Define multiple courses with their IDs, types, and local storage paths. Allowed Types: LECTURE, SHEET, CODING-SHEET",
     "COURSES": [
         {
+            "COURSE_NAME": "REPLACE",
             "COURSE_ID": "REPLACE",
             "COURSE_PROPERTY": "DEFINE_TYPE",
             "LOCAL_FOLDER": "REPLACE"
