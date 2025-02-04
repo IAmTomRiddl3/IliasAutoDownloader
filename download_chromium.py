@@ -84,7 +84,7 @@ for course in COURSES:
             web_files[file_name] = file_link
 
     # Handle SHEET-type courses
-    if course_property == "SHEET":
+    if course_property in ["SHEET", "CODING_SHEET"]:
         h_set = set()
         l_set = set()
 
@@ -102,14 +102,14 @@ for course in COURSES:
         print("H-Prefix Set:", sorted(h_set))
         print("L-Prefix Set:", sorted(l_set))
 
-        # **Erstellung fehlender HXX-Ordner**
+        # **Creation of missing HXX folders**
         for num in h_set:
             h_folder = os.path.join(local_folder, f"H{num}")
             if not os.path.exists(h_folder):
                 print(f"Creating folder: {h_folder}")
                 os.makedirs(h_folder)
 
-        # **Download fehlender Dateien**
+        # **Download missing files**
         downloaded_files = {f.replace(".pdf", "") for f in os.listdir(local_folder) if f.endswith(".pdf")}
         missing_files = sorted(set(web_files.keys()) - downloaded_files)
 
@@ -121,57 +121,56 @@ for course in COURSES:
                 driver.get(file_url)
                 time.sleep(1)  # Allow some time for the download to complete
 
-        # Verschieben der Dateien in ihre entsprechenden HXX-Ordner basierend auf der Nummer im Dateinamen
+        # Move the files to their corresponding HXX folders based on the number in the filename
         for filename in os.listdir(local_folder):
             file_path = os.path.join(local_folder, filename)
-            # Nur echte Dateien (keine Ordner) und nur PDFs berücksichtigen
+            # Only actual files (no folders) and only PDFs are considered
             if os.path.isfile(file_path) and filename.lower().endswith(".pdf"):
-                # Extrahiere die erste Zahlenfolge aus dem Dateinamen
+                # Extract the first digit sequence from the filename
                 matches = re.findall(r'\d+', filename)
                 if not matches:
-                    print(f"Keine Nummer in '{filename}' gefunden, Datei wird übersprungen.")
+                    print(f"No number found in '{filename}', skipping file.")
                     continue
 
                 formatted_num = f"{int(matches[0]):02d}"
-                # Verschiebe die Datei nur, wenn es bereits eine H-Datei (also einen Eintrag in h_set) zu dieser Nummer gibt
+                # Move the file only if there's a matching H-number (an entry in h_set)
                 if formatted_num in h_set:
                     target_folder = os.path.join(local_folder, f"H{formatted_num}")
-                    # Zielordner anlegen, falls er noch nicht existiert
+                    # Create the target directory if it doesn't exist
                     if not os.path.exists(target_folder):
                         os.makedirs(target_folder)
-                        print(f"Erstelltes Zielverzeichnis: {target_folder}")
+                        print(f"Created target directory: {target_folder}")
 
                     destination_path = os.path.join(target_folder, filename)
                     if os.path.exists(destination_path):
-                        print(f"'{filename}' existiert bereits in '{target_folder}', Überspringe Verschiebung.")
+                        print(f"'{filename}' already exists in '{target_folder}', skipping move.")
                     else:
                         try:
                             os.rename(file_path, destination_path)
-                            print(f"Verschoben: '{filename}' nach '{target_folder}'")
+                            print(f"Moved '{filename}' to '{target_folder}'")
                         except Exception as e:
-                            # Fallback: Wenn os.rename fehlschlägt, versuche mit shutil.move
+                            # Fallback: If os.rename fails, try shutil.move
                             shutil.move(file_path, destination_path)
-                            print(f"Fallback Verschiebung: '{filename}' nach '{target_folder}'")
+                            print(f"Fallback move: '{filename}' to '{target_folder}'")
                 else:
-                    print(
-                        f"Für '{filename}' wurde keine passende H-Nummer in h_set gefunden, daher keine Verschiebung.")
+                    print(f"No matching H-number in h_set for '{filename}', so no move performed.")
 
-        # === Hier endet die Schleife, die die PDFs verschiebt ===
+        # Here ends the loop that moves the PDFs
 
-        # --- Schritt 2: Löschen nicht verschobener PDFs ---
+        # --- Step 2: Delete non-moved PDFs ---
         for filename in os.listdir(local_folder):
             file_path = os.path.join(local_folder, filename)
             if os.path.isfile(file_path) and filename.lower().endswith(".pdf"):
                 try:
                     os.remove(file_path)
-                    print(f"Gelöscht: '{filename}' da nicht verschoben.")
+                    print(f"Deleted '{filename}' because it was not moved.")
                 except Exception as e:
-                    print(f"Fehler beim Löschen von '{filename}': {e}")
+                    print(f"Error deleting '{filename}': {e}")
 
-        # --- Schritt 3: Erstellen der Unterordner in jedem H-Ordner und Anlegen der .tex-Dateien ---
+        # --- Step 3: Create subfolders in each H-folder and create the .tex files ---
 
-        # Definiere das LaTeX-Template mit Platzhaltern für COURSE_NAME, Blattnummer, NAME und MATNR.
-        # Die doppelten geschweiften Klammern {{ und }} dienen dazu, einzelne geschweifte Klammern in LaTeX zu erhalten.
+        # Define the LaTeX template with placeholders for COURSE_NAME, sheet_number, NAME, and MATNR.
+        # The double braces {{ and }} are needed to keep single braces in LaTeX.
         latex_template = r"""\documentclass[10pt,a4paper]{{article}}
         \usepackage[T1]{{fontenc}}
         \usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{{geometry}}
@@ -189,49 +188,56 @@ for course in COURSES:
         \end{{document}}
         """
 
-        # Durchlaufe alle Unterordner im local_folder, die dem Muster "H\d{2}" entsprechen
+        # Go through all subfolders in local_folder that match the pattern "H\d{2}"
         for folder in os.listdir(local_folder):
             folder_path = os.path.join(local_folder, folder)
             if os.path.isdir(folder_path) and re.match(r'^H\d{2}$', folder):
                 m = re.match(r'^H(\d{2})$', folder)
                 if m:
-                    number = m.group(1)  # Das ist die Blattnummer, z. B. "01"
+                    number = m.group(1)  # This is the sheet number, e.g. "01"
 
-                    # --- Erstellen des Unterordners HXX und dessen Tex-Unterordner ---
+                    # --- Create the subfolder HXX and its Tex subfolder ---
                     h_subfolder = os.path.join(folder_path, f"H{number}")
                     if not os.path.exists(h_subfolder):
                         os.makedirs(h_subfolder)
-                        print(f"Erstellter Unterordner: '{h_subfolder}'")
+                        print(f"Created subfolder: '{h_subfolder}'")
                     h_tex_folder = os.path.join(h_subfolder, "Tex")
                     if not os.path.exists(h_tex_folder):
                         os.makedirs(h_tex_folder)
-                        print(f"Erstellter 'Tex'-Ordner in '{h_subfolder}'")
-                    # Erstelle die .tex-Datei in HXX/Tex und benenne sie als HXX.tex
+                        print(f"Created 'Tex' folder in '{h_subfolder}'")
+                    # Create the .tex file in HXX/Tex and name it HXX.tex
                     h_tex_file_path = os.path.join(h_tex_folder, f"H{number}.tex")
                     with open(h_tex_file_path, "w", encoding="utf-8") as f:
                         f.write(latex_template.format(course_name=course_name,
                                                       sheet_number=number,
                                                       student_name=NAME,
                                                       matnr=MATNR))
-                    print(f".tex-Datei in '{h_tex_folder}' erstellt: {h_tex_file_path}")
+                    print(f".tex file created in '{h_tex_folder}': {h_tex_file_path}")
 
-                    # --- Erstellen des Unterordners PXX und dessen Tex-Unterordner ---
+                    # --- Create the subfolder PXX and its Tex subfolder ---
                     p_subfolder = os.path.join(folder_path, f"P{number}")
                     if not os.path.exists(p_subfolder):
                         os.makedirs(p_subfolder)
-                        print(f"Erstellter Unterordner: '{p_subfolder}'")
+                        print(f"Created subfolder: '{p_subfolder}'")
                     p_tex_folder = os.path.join(p_subfolder, "Tex")
                     if not os.path.exists(p_tex_folder):
                         os.makedirs(p_tex_folder)
-                        print(f"Erstellter 'Tex'-Ordner in '{p_subfolder}'")
-                    # Erstelle die .tex-Datei in PXX/Tex und benenne sie als PXX.tex
+                        print(f"Created 'Tex' folder in '{p_subfolder}'")
+                    # Create the .tex file in PXX/Tex and name it PXX.tex
                     p_tex_file_path = os.path.join(p_tex_folder, f"P{number}.tex")
                     with open(p_tex_file_path, "w", encoding="utf-8") as f:
                         f.write(latex_template.format(course_name=course_name,
                                                       sheet_number=number,
                                                       student_name=NAME,
                                                       matnr=MATNR))
-                    print(f".tex-Datei in '{p_tex_folder}' erstellt: {p_tex_file_path}")
+                    print(f".tex file created in '{p_tex_folder}': {p_tex_file_path}")
+
+                    # If the course is of type CODING_SHEET, create an additional folder for code
+                    if course_property == "CODING_SHEET":
+                        code_folder = os.path.join(folder_path, f"Code-H{number}")
+                        if not os.path.exists(code_folder):
+                            os.makedirs(code_folder)
+                            print(f"Created coding folder: '{code_folder}'")
                 else:
                     print(f"Error while extracting the number from '{folder}'")
 
