@@ -7,7 +7,7 @@
     "NAME": "REPLACE",
     "MATNR": "REPLACE",
 
-    "_comment": "Define multiple courses with their IDs, types, and local storage paths. Allowed Types: LECTURE, SHEET, CODING-SHEET",
+    "_comment": "Define multiple courses with their IDs, types, and local storage paths. Allowed Types: LECTURE, SHEET, CODING_SHEET",
     "COURSES": [
         {
             "COURSE_NAME": "REPLACE",
